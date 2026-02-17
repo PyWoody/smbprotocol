@@ -1,11 +1,19 @@
 # Copyright: (c) 2019, Jordan Borean (@jborean93) <jborean93@gmail.com>
 # MIT License (see LICENSE or https://opensource.org/licenses/MIT)
 
+from os import path as os_path
+
 import errno
 import stat as py_stat
 
 from smbclient._os import stat
 from smbprotocol.exceptions import SMBLinkRedirectionError, SMBOSError
+
+
+def __getattr__(name):
+    if attr := getattr(os_path, name, None):
+        return attr
+    raise AttributeError(f"module 'smbclient.path' has no attribute {name!r}")
 
 
 def exists(path, **kwargs):
