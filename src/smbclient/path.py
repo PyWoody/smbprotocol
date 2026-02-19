@@ -1,7 +1,7 @@
 # Copyright: (c) 2019, Jordan Borean (@jborean93) <jborean93@gmail.com>
 # MIT License (see LICENSE or https://opensource.org/licenses/MIT)
 
-from os import path as os_path
+import os
 
 import errno
 import stat as py_stat
@@ -11,9 +11,44 @@ from smbprotocol.exceptions import SMBLinkRedirectionError, SMBOSError
 
 
 def __getattr__(name):
-    if attr := getattr(os_path, name, None):
+    if attr := getattr(os.path, name, None):
         return attr
     raise AttributeError(f"module 'smbclient.path' has no attribute {name!r}")
+
+
+def basename(path):
+    return os.path.basename(path.replace('\\', os.sep)).replace(os.sep, '\\')
+
+
+def split(path):
+    head, tail = os.path.split(path.replace('\\', os.sep))
+    return head.replace(os.sep, '\\'), tail.replace(os.sep, '\\')
+
+
+def commonpath(paths):
+    if any(i.startswith('\\\\') for i in paths):
+        head = '\\'
+    else:
+        head = ''
+    return head + os.path.commonpath(
+        (p.replace('\\', os.sep) for p in paths)
+    ).replace(os.sep, '\\')
+
+
+def commonprefix(paths_as_list):
+    return os.path.commonprefix(
+        [i.replace('\\', os.sep) for i in paths_as_list]
+    ).replace(os.sep, '\\')
+
+
+def dirname(path):
+    return split(path)[0].replace(os.sep, '\\')
+
+
+def relpath(path, start=os.curdir):
+    return os.path.relpath(
+        path.replace('\\', os.sep), start=start.replace('\\', os.sep)
+    ).replace(os.sep, '\\')
 
 
 def exists(path, **kwargs):
