@@ -42,7 +42,11 @@ def commonprefix(paths_as_list):
 
 
 def dirname(path):
-    return split(path)[0].replace(os.sep, '\\')
+    return split(path)[0]
+
+
+def join(path, *paths):
+    return os.path.join(path, *paths).replace(os.sep, '\\')
 
 
 def relpath(path, start=os.curdir):
