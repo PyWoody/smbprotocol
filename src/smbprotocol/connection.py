@@ -241,7 +241,8 @@ class SMB3NegotiateRequest(Structure):
                     "negotiate_context_offset",
                     IntField(
                         size=4,
-                        default=lambda s: self._negotiate_context_offset_value(s),
+                        # default=lambda s: self._negotiate_context_offset_value(s),
+                        default=get_SMB3NegotiateRequest_negotiate_context_offset_value,
                     ),
                 ),
                 (
@@ -263,22 +264,25 @@ class SMB3NegotiateRequest(Structure):
                 (
                     "padding",
                     BytesField(
-                        size=lambda s: self._padding_size(s),
-                        default=lambda s: b"\x00" * self._padding_size(s),
+                        # size=lambda s: self._padding_size(s),
+                        size=get_SMB3NegotiateRequest_padding_size,
+                        # default=lambda s: b"\x00" * self._padding_size(s),
+                        default=get_SMB3NegotiateRequest_defaul_padding_size,
                     ),
                 ),
                 (
                     "negotiate_context_list",
                     ListField(
                         list_count=lambda s: s["negotiate_context_count"].get_value(),
-                        unpack_func=lambda s, d: self._negotiate_context_list(s, d),
+                        # unpack_func=lambda s, d: self._negotiate_context_list(s, d),
+                        unpack_func=get_SMB3NegotiateRequest_negotiate_context_list,
                     ),
                 ),
             ]
         )
         super().__init__()
 
-    def _negotiate_context_offset_value(self, structure):
+    def x_negotiate_context_offset_value(self, structure):
         # The offset from the beginning of the SMB2 header to the first, 8-byte
         # aligned, negotiate context
         header_size = 64
@@ -287,14 +291,14 @@ class SMB3NegotiateRequest(Structure):
         padding_size = self._padding_size(structure)
         return header_size + negotiate_size + dialect_size + padding_size
 
-    def _padding_size(self, structure):
+    def x_padding_size(self, structure):
         # Padding between the end of the buffer value and the first Negotiate
         # context value so that the first value is 8-byte aligned. Padding is
         # 4 is there are no dialects specified
         mod = (structure["dialect_count"].get_value() * 2) % 8
         return 0 if mod == 0 else mod
 
-    def _negotiate_context_list(self, structure, data):
+    def x_negotiate_context_list(self, structure, data):
         context_count = structure["negotiate_context_count"].get_value()
         context_list = []
         for idx in range(0, context_count):
@@ -303,7 +307,7 @@ class SMB3NegotiateRequest(Structure):
 
         return context_list
 
-    def _parse_negotiate_context_entry(self, data):
+    def x_parse_negotiate_context_entry(self, data):
         data_length = struct.unpack("<H", data[2:4])[0]
         negotiate_context = SMB2NegotiateContextRequest()
         negotiate_context.unpack(data[: data_length + 8])
@@ -345,7 +349,8 @@ class SMB2NegotiateContextRequest(Structure):
                     "data",
                     StructureField(
                         size=lambda s: s["data_length"].get_value(),
-                        structure_type=lambda s: self._data_structure_type(s),
+                        # structure_type=lambda s: self._data_structure_type(s),
+                        structure_type=get_SMB2NegotiateContextRequest_data_structure_type,
                     ),
                 ),
                 # not actually a field but each list entry must start at the 8 byte
@@ -353,15 +358,17 @@ class SMB2NegotiateContextRequest(Structure):
                 (
                     "padding",
                     BytesField(
-                        size=lambda s: self._padding_size(s),
-                        default=lambda s: b"\x00" * self._padding_size(s),
+                        # size=lambda s: self._padding_size(s),
+                        size=get_SMB2NegotiateContextRequest_padding_size,
+                        # default=lambda s: b"\x00" * self._padding_size(s),
+                        default=get_SMB2NegotiateContextRequest_default_padding_size,
                     ),
                 ),
             ]
         )
         super().__init__()
 
-    def _data_structure_type(self, structure):
+    def x_data_structure_type(self, structure):
         con_type = structure["context_type"].get_value()
         if con_type == NegotiateContextType.SMB2_PREAUTH_INTEGRITY_CAPABILITIES:
             return SMB2PreauthIntegrityCapabilities
@@ -372,7 +379,7 @@ class SMB2NegotiateContextRequest(Structure):
         elif con_type == NegotiateContextType.SMB2_SIGNING_CAPABILITIES:
             return SMB2SigningCapabilities
 
-    def _padding_size(self, structure):
+    def x_padding_size(self, structure):
         data_size = len(structure["data"])
         return 8 - (data_size % 8 or 8)
 
@@ -548,7 +555,8 @@ class SMB2NegotiateResponse(Structure):
                     "negotiate_context_count",
                     IntField(
                         size=2,
-                        default=lambda s: self._negotiate_context_count_value(s),
+                        # default=lambda s: self._negotiate_context_count_value(s),
+                        default=get_SMB2NegotiateResponse_negotiate_context_count_value,
                     ),
                 ),
                 ("server_guid", UuidField()),
@@ -576,7 +584,8 @@ class SMB2NegotiateResponse(Structure):
                     "negotiate_context_offset",
                     IntField(
                         size=4,
-                        default=lambda s: self._negotiate_context_offset_value(s),
+                        # default=lambda s: self._negotiate_context_offset_value(s),
+                        default=get_SMB2NegotiateResponse_negotiate_context_offset_value,
                     ),
                 ),
                 (
@@ -588,22 +597,25 @@ class SMB2NegotiateResponse(Structure):
                 (
                     "padding",
                     BytesField(
-                        size=lambda s: self._padding_size(s),
-                        default=lambda s: b"\x00" * self._padding_size(s),
+                        # size=lambda s: self._padding_size(s),
+                        size=get_SMB2NegotiateResponse_padding_size,
+                        # default=lambda s: b"\x00" * self._padding_size(s),
+                        default=get_SMB2NegotiateResponse_default_padding_size,
                     ),
                 ),
                 (
                     "negotiate_context_list",
                     ListField(
                         list_count=lambda s: s["negotiate_context_count"].get_value(),
-                        unpack_func=lambda s, d: self._negotiate_context_list(s, d),
+                        # unpack_func=lambda s, d: self._negotiate_context_list(s, d),
+                        unpack_func=get_SMB2NegotiateResponse_negotiate_context_list,
                     ),
                 ),
             ]
         )
         super().__init__()
 
-    def _negotiate_context_count_value(self, structure):
+    def x_negotiate_context_count_value(self, structure):
         # If the dialect_revision is SMBv3.1.1, this field specifies the
         # number of negotiate contexts in negotiate_context_list; otherwise
         # this field must not be used and must be reserved (0).
@@ -612,7 +624,7 @@ class SMB2NegotiateResponse(Structure):
         else:
             return None
 
-    def _negotiate_context_offset_value(self, structure):
+    def x_negotiate_context_offset_value(self, structure):
         # If the dialect_revision is SMBv3.1.1, this field specifies the offset
         # from the beginning of the SMB2 header to the first 8-byte
         # aligned negotiate context entry in negotiate_context_list; otherwise
@@ -625,7 +637,7 @@ class SMB2NegotiateResponse(Structure):
         else:
             return None
 
-    def _padding_size(self, structure):
+    def x_padding_size(self, structure):
         # Padding between the end of the buffer value and the first Negotiate
         # context value so that the first value is 8-byte aligned. Padding is
         # not required if there are not negotiate contexts
@@ -635,7 +647,7 @@ class SMB2NegotiateResponse(Structure):
         mod = structure["security_buffer_length"].get_value() % 8
         return 0 if mod == 0 else 8 - mod
 
-    def _negotiate_context_list(self, structure, data):
+    def x_negotiate_context_list(self, structure, data):
         context_count = structure["negotiate_context_count"].get_value()
         context_list = []
         for idx in range(0, context_count):
@@ -644,7 +656,7 @@ class SMB2NegotiateResponse(Structure):
 
         return context_list
 
-    def _parse_negotiate_context_entry(self, data):
+    def x_parse_negotiate_context_entry(self, data):
         data_length = struct.unpack("<H", data[2:4])[0]
         negotiate_context = SMB2NegotiateContextRequest()
         negotiate_context.unpack(data[: data_length + 8])
@@ -1735,3 +1747,125 @@ class Request:
         self.response_event = new_request.response_event
         self.response_event_lock = new_request.response_event_lock
         self.related_ids = new_request.related_ids
+
+
+# SMB3NegotiateRequest
+
+def get_SMB3NegotiateRequest_negotiate_context_offset_value(structure):
+    # The offset from the beginning of the SMB2 header to the first, 8-byte
+    # aligned, negotiate context
+    header_size = 64
+    negotiate_size = structure["structure_size"].get_value()
+    dialect_size = len(structure["dialects"])
+    padding_size = get_SMB3NegotiateRequest_padding_size(structure)
+    return header_size + negotiate_size + dialect_size + padding_size
+
+def get_SMB3NegotiateRequest_padding_size(structure):
+    # Padding between the end of the buffer value and the first Negotiate
+    # context value so that the first value is 8-byte aligned. Padding is
+    # 4 is there are no dialects specified
+    mod = (structure["dialect_count"].get_value() * 2) % 8
+    return 0 if mod == 0 else mod
+
+def get_SMB3NegotiateRequest_defaul_padding_size(structure):
+    # Padding between the end of the buffer value and the first Negotiate
+    # context value so that the first value is 8-byte aligned. Padding is
+    # 4 is there are no dialects specified
+    return b'\x00' * get_SMB3NegotiateRequest_padding_size(structure)
+
+def get_SMB3NegotiateRequest_negotiate_context_list(structure, data):
+    context_count = structure["negotiate_context_count"].get_value()
+    context_list = []
+    for idx in range(0, context_count):
+        field, data = get_SMB3NegotiateRequest_parse_negotiate_context_entry(data)
+        context_list.append(field)
+    return context_list
+
+def get_SMB3NegotiateRequest_parse_negotiate_context_entry(data):
+    data_length = struct.unpack("<H", data[2:4])[0]
+    negotiate_context = SMB2NegotiateContextRequest()
+    negotiate_context.unpack(data[: data_length + 8])
+    padded_size = 8 - (data_length % 8 or 8)
+    return negotiate_context, data[8 + data_length + padded_size :]
+
+
+# SMB2NegotiateContextRequest
+
+def get_SMB2NegotiateContextRequest_data_structure_type(structure):
+    con_type = structure["context_type"].get_value()
+    if con_type == NegotiateContextType.SMB2_PREAUTH_INTEGRITY_CAPABILITIES:
+        return SMB2PreauthIntegrityCapabilities
+    elif con_type == NegotiateContextType.SMB2_ENCRYPTION_CAPABILITIES:
+        return SMB2EncryptionCapabilities
+    elif con_type == NegotiateContextType.SMB2_NETNAME_NEGOTIATE_CONTEXT_ID:
+        return SMB2NetnameNegotiateContextId
+    elif con_type == NegotiateContextType.SMB2_SIGNING_CAPABILITIES:
+        return SMB2SigningCapabilities
+
+def get_SMB2NegotiateContextRequest_padding_size(structure):
+    data_size = len(structure["data"])
+    return 8 - (data_size % 8 or 8)
+
+
+def get_SMB2NegotiateContextRequest_default_padding_size(structure):
+    return b'\x00' * get_SMB2NegotiateContextRequest_padding_size(structure)
+
+
+
+# SMB2NegotiateResponse
+
+def get_SMB2NegotiateResponse_negotiate_context_count_value(structure):
+    # If the dialect_revision is SMBv3.1.1, this field specifies the
+    # number of negotiate contexts in negotiate_context_list; otherwise
+    # this field must not be used and must be reserved (0).
+    if structure["dialect_revision"].get_value() == Dialects.SMB_3_1_1:
+        return len(structure["negotiate_context_list"].get_value())
+    else:
+        return None
+
+
+def get_SMB2NegotiateResponse_negotiate_context_offset_value(structure):
+    # If the dialect_revision is SMBv3.1.1, this field specifies the offset
+    # from the beginning of the SMB2 header to the first 8-byte
+    # aligned negotiate context entry in negotiate_context_list; otherwise
+    # this field must not be used and must be reserved (0).
+    if structure["dialect_revision"].get_value() == Dialects.SMB_3_1_1:
+        buffer_offset = structure["security_buffer_offset"].get_value()
+        buffer_size = structure["security_buffer_length"].get_value()
+        padding_size = get_SMB2NegotiateResponse_padding_size(structure)
+        return buffer_offset + buffer_size + padding_size
+    else:
+        return None
+
+def get_SMB2NegotiateResponse_padding_size(structure):
+    # Padding between the end of the buffer value and the first Negotiate
+    # context value so that the first value is 8-byte aligned. Padding is
+    # not required if there are not negotiate contexts
+    if structure["negotiate_context_count"].get_value() == 0:
+        return 0
+    mod = structure["security_buffer_length"].get_value() % 8
+    return 0 if mod == 0 else 8 - mod
+
+
+def get_SMB2NegotiateResponse_default_padding_size(structure):
+    return b'\x00' * get_SMB2NegotiateResponse_padding_size(structure)
+
+
+def get_SMB2NegotiateResponse_negotiate_context_list(structure, data):
+    context_count = structure["negotiate_context_count"].get_value()
+    context_list = []
+    for idx in range(0, context_count):
+        field, data = get_SMB2NegotiateResponse_parse_negotiate_context_entry(data)
+        context_list.append(field)
+    return context_list
+
+
+def get_SMB2NegotiateResponse_parse_negotiate_context_entry(data):
+    data_length = struct.unpack("<H", data[2:4])[0]
+    negotiate_context = SMB2NegotiateContextRequest()
+    negotiate_context.unpack(data[: data_length + 8])
+    padded_size = data_length % 8
+    if padded_size != 0:
+        padded_size = 8 - padded_size
+
+    return negotiate_context, data[8 + data_length + padded_size :]

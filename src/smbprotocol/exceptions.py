@@ -696,14 +696,15 @@ class SMB2ErrorResponse(Structure):
                         size=lambda s: s["byte_count"].get_value(),
                         list_count=lambda s: s["error_context_count"].get_value(),
                         list_type=StructureField(structure_type=SMB2ErrorContextResponse),
-                        unpack_func=lambda s, d: self._error_data_value(s, d),
+                        # unpack_func=lambda s, d: self._error_data_value(s, d),
+                        unpack_func=get_SMB2ErrorResponse_error_data_value,
                     ),
                 ),
             ]
         )
         super().__init__()
 
-    def _error_data_value(self, structure, data):
+    def x_error_data_value(self, structure, data):
         context_responses = []
 
         while len(data) > 0:
@@ -801,12 +802,13 @@ class SMB2SymbolicLinkErrorResponse(Structure):
                 ("reserved", IntField(size=2)),
                 # use the get/set_name functions to get/set these values as they
                 # also (d)encode the text and set the length and offset accordingly
-                ("path_buffer", BytesField(size=lambda s: self._get_name_length(s, True))),
+                # ("path_buffer", BytesField(size=lambda s: self._get_name_length(s, True))),
+                ("path_buffer", BytesField(size=get_SMB2SymbolicLinkErrorResponse_get_name_length)),
             ]
         )
         super().__init__()
 
-    def _get_name_length(self, structure, first):
+    def x_get_name_length(self, structure, first):
         print_name_len = structure["print_name_length"].get_value()
         sub_name_len = structure["substitute_name_length"].get_value()
         return print_name_len + sub_name_len
@@ -898,7 +900,8 @@ class SMB2ShareRedirectErrorContext(Structure):
             [
                 ("structure_size", IntField(size=4, default=lambda s: len(s))),
                 ("notification_type", IntField(size=4, default=3)),
-                ("resource_name_offset", IntField(size=4, default=lambda s: self._resource_name_offset(s))),
+                # ("resource_name_offset", IntField(size=4, default=lambda s: self._resource_name_offset(s))),
+                ("resource_name_offset", IntField(size=4, default=get_SMB2ShareRedirectErrorContext_resource_name_offset)),
                 ("resource_name_length", IntField(size=4, default=lambda s: len(s["resource_name"]))),
                 ("flags", IntField(size=2, default=0)),
                 ("target_type", IntField(size=2, default=0)),
@@ -916,7 +919,7 @@ class SMB2ShareRedirectErrorContext(Structure):
         )
         super().__init__()
 
-    def _resource_name_offset(self, structure):
+    def x_resource_name_offset(self, structure):
         min_structure_size = 24
         addr_list_size = len(structure["ip_addr_move_list"])
         return min_structure_size + addr_list_size
@@ -935,24 +938,26 @@ class SMB2MoveDstIpAddrStructure(Structure):
             [
                 ("type", EnumField(size=4, enum_type=IpAddrType)),
                 ("reserved", IntField(size=4)),
-                ("ip_address", BytesField(size=lambda s: self._ip_address_size(s))),
+                # ("ip_address", BytesField(size=lambda s: self._ip_address_size(s))),
+                ("ip_address", BytesField(size=get_SMB2MoveDstIpAddrStructure_ip_address_size)),
                 (
                     "reserved2",
                     BytesField(
-                        size=lambda s: self._reserved2_size(s), default=lambda s: b"\x00" * self._reserved2_size(s)
+                        # size=lambda s: self._reserved2_size(s), default=lambda s: b"\x00" * self._reserved2_size(s)
+                        size=get_SMB2MoveDstIpAddrStructure_reserved2_size, default=get_SMB2MoveDstIpAddrStructure_default_reserved2_size
                     ),
                 ),
             ]
         )
         super().__init__()
 
-    def _ip_address_size(self, structure):
+    def x_ip_address_size(self, structure):
         if structure["type"].get_value() == IpAddrType.MOVE_DST_IPADDR_V4:
             return 4
         else:
             return 16
 
-    def _reserved2_size(self, structure):
+    def x_reserved2_size(self, structure):
         if structure["type"].get_value() == IpAddrType.MOVE_DST_IPADDR_V4:
             return 12
         else:
@@ -977,3 +982,56 @@ class SMB2MoveDstIpAddrStructure(Structure):
             if len(addr) != 32:
                 raise ValueError("When setting an IPv6 address, it must be in the full form without concatenation")
             self["ip_address"].set_value(binascii.unhexlify(addr))
+
+
+# SMB2ErrorResponse
+
+def get_SMB2ErrorResponse_error_data_value(structure, data):
+    context_responses = []
+    while len(data) > 0:
+        response = SMB2ErrorContextResponse()
+        if structure["error_context_count"].get_value() > 0:
+            # Working with SMB 3.1.1+ where the errors are already in an SMB2ErrorContextReponse packet, unpack the
+            # data as usual
+            data = response.unpack(data)
+        else:
+            # Working with an older SMB dialect where the response is set directly in the error_data field, need to
+            # manually craft the SMB2ErrorContextResponse with the data returned.
+            response["error_context_data"] = data
+            data = b""
+        context_responses.append(response)
+    return context_responses
+
+
+# SMB2SymbolicLinkErrorResponse
+
+def get_SMB2SymbolicLinkErrorResponse_get_name_length(structure, first=True):
+    print_name_len = structure["print_name_length"].get_value()
+    sub_name_len = structure["substitute_name_length"].get_value()
+    return print_name_len + sub_name_len
+
+
+# SMB2ShareRedirectErrorContext
+
+def get_SMB2ShareRedirectErrorContext_resource_name_offset(structure):
+    min_structure_size = 24
+    addr_list_size = len(structure["ip_addr_move_list"])
+    return min_structure_size + addr_list_size
+
+
+# SMB2MoveDstIpAddrStructure
+
+def get_SMB2MoveDstIpAddrStructure_ip_address_size(structure):
+    if structure["type"].get_value() == IpAddrType.MOVE_DST_IPADDR_V4:
+        return 4
+    else:
+        return 16
+
+def get_SMB2MoveDstIpAddrStructure_reserved2_size(structure):
+    if structure["type"].get_value() == IpAddrType.MOVE_DST_IPADDR_V4:
+        return 12
+    else:
+        return 0
+
+def get_SMB2MoveDstIpAddrStructure_default_reserved2_size(structure):
+    return b'\x00' * get_SMB2MoveDstIpAddrStructure_reserved2_size(structure)

@@ -271,14 +271,15 @@ class AclPacket(Structure):
                     "aces",
                     ListField(
                         list_count=lambda s: s["ace_count"].get_value(),
-                        unpack_func=lambda s, d: self._unpack_aces(s, d),
+                        # unpack_func=lambda s, d: self._unpack_aces(s, d),
+                        unpack_func=get_AclPacket_unpack_aces,
                     ),
                 ),
             ]
         )
         super().__init__()
 
-    def _unpack_aces(self, structure, data):
+    def x_unpack_aces(self, structure, data):
         aces = []
         while data != b"" and len(aces) < structure["ace_count"].value:
             ace_type = struct.unpack("<B", data[:1])[0]
@@ -396,3 +397,25 @@ class SMB2CreateSDBuffer(Structure):
             offset_count += len(field_bytes)
 
         self["buffer"].set_value(buffer)
+
+
+# AclPacket
+
+def get_AclPacket_unpack_aces(structure, data):
+    aces = []
+    while data != b"" and len(aces) < structure["ace_count"].value:
+        ace_type = struct.unpack("<B", data[:1])[0]
+        ace_struct = {
+            AceType.ACCESS_ALLOWED_ACE_TYPE: AccessAllowedAce(),
+            AceType.ACCESS_DENIED_ACE_TYPE: AccessDeniedAce(),
+            AceType.SYSTEM_AUDIT_ACE_TYPE: SystemAuditAce(),
+        }.get(ace_type, None)
+        if not ace_struct:
+            ace_size = struct.unpack("<H", data[2:4])[0]
+            aces.append(data[:ace_size])
+            data = data[ace_size:]
+        else:
+            ace_struct.unpack(data)
+            aces.append(ace_struct)
+            data = data[len(ace_struct) :]
+    return aces

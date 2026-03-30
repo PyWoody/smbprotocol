@@ -303,6 +303,7 @@ class DFSReferralResponse(Structure):
                 ("string_buffer", BytesField()),
             ]
         )
+        breakpoint()
         super().__init__()
 
     def _create_dfs_referral_entry(self, data):
