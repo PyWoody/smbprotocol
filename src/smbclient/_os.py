@@ -64,6 +64,13 @@ from smbprotocol.reparse_point import (
 )
 from smbprotocol.structure import DateTimeField
 
+
+def __getattr__(name):
+    if attr := getattr(os, name, None):
+        return attr
+    raise AttributeError(f"module 'smbclient' has not attribute {name!r}")
+
+
 XATTR_CREATE = getattr(os, "XATTR_CREATE", 1)
 XATTR_REPLACE = getattr(os, "XATTR_REPLACE", 2)
 
